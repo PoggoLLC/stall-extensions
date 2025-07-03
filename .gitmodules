@@ -1,0 +1,3 @@
+[submodule "extensions/stall-currency-converter"]
+	path = extensions/stall-currency-converter
+	url = https://github.com/Sands-45/stall-currency-converter.git
