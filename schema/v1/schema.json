@@ -1,30 +1,118 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "StallExtension",
+  "title": "Stall Extension",
   "type": "object",
+  "required": ["pages"],
   "properties": {
-    "id": {
-      "type": "string",
-      "format": "uuid"
-    },
-    "name": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 100
-    },
-    "description": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 500
-    },
-    "price": {
-      "type": "number",
-      "minimum": 0
-    },
-    "image": {
-      "type": "string",
-      "format": "uri"
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "default",
+          "id",
+          "title",
+          "description",
+          "contexts",
+          "actions",
+          "ui"
+        ],
+        "properties": {
+          "default": { "type": "boolean" },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "contexts": {
+            "type": "object",
+            "required": ["lookup", "standalone"],
+            "properties": {
+              "lookup": { "type": "boolean" },
+              "standalone": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["default", "name", "args"],
+              "properties": {
+                "default": { "type": "boolean" },
+                "name": { "type": "string" },
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [{ "type": "string" }, { "type": "number" }]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "ui": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["list", "form", "input"]
+                },
+                "data_origin": {
+                  "type": "string",
+                  "enum": ["local", "remote"]
+                },
+                "source": {
+                  "type": "string"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "type": { "const": "list" }
+                    },
+                    "required": ["type"]
+                  },
+                  "then": {
+                    "required": ["data_origin", "source"],
+                    "properties": {
+                      "data_origin": {
+                        "type": "string",
+                        "enum": ["local", "remote"]
+                      },
+                      "source": {
+                        "type": "string",
+                        "anyOf": [
+                          {
+                            "enum": [
+                              "products",
+                              "customers",
+                              "orders",
+                              "collections",
+                              "categories"
+                            ]
+                          },
+                          {
+                            "format": "uri"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
-  "required": ["id", "name", "description", "price", "image"]
+  "additionalProperties": false
 }
