@@ -1,5 +1,10 @@
-"name" = "My extension"
-"description" = "Some description"
-"icon" = "assests/icon.svg"
-"version" = "0.0.1"
-"author" = "Your name"
+id = "my-extension"
+name = "My extension"
+description = "Some description"
+keywords = ["keyword1", "keyword2"]
+icon = "assests/icon.svg"
+version = "0.0.1"
+author = "Your name"
+repo = "https://github.com/yourusername/my-extension"
+homepage = "https://yourwebsite.com/my-extension"
+offline_ready = true
