@@ -1,0 +1,17 @@
+{
+  "name": "stall-currency-converter",
+  "type": "module",
+  "scripts": {
+    "build": "bun build --minify src/index.ts --outdir dist",
+    "dev": "bun run 'stall.config.ts'"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3"
+  }
+}
