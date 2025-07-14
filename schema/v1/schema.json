@@ -2,8 +2,12 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Stall Extension",
   "type": "object",
-  "required": ["pages"],
+  "required": ["pages", "$schema"],
   "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri"
+    },
     "pages": {
       "type": "array",
       "items": {
