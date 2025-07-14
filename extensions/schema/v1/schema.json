@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "StallExtension",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0
+    },
+    "image": {
+      "type": "string",
+      "format": "uri"
+    }
+  },
+  "required": ["id", "name", "description", "price", "image"]
+}
