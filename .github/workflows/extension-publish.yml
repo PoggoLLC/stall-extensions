@@ -41,17 +41,22 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Install AWS CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y awscli
+
       - name: Build, version check, and upload changed extensions
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          CLOUDFLARE_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          CLOUDFLARE_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
           set -e
 
-          echo "Installing Cloudflare Wrangler CLI with Bun..."
-          bun add -g wrangler
+          # Construct the R2 S3-compatible endpoint URL
+          ENDPOINT_URL="https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com"
 
           CHANGED_EXTENSIONS=$(git diff --name-only HEAD~1 HEAD | grep '^extensions/' | awk -F'/' '{print $1 "/" $2}' | uniq)
 
@@ -75,8 +80,8 @@ jobs:
 
                 echo "Checking if version ${pkg_version} already exists at ${R2_OBJECT_KEY}..."
 
-                # Check existence by testing the command's exit code (suppresses output)
-                if wrangler r2 object head "${R2_BUCKET_NAME}/${R2_OBJECT_KEY}" > /dev/null 2>&1; then
+                # Check existence using AWS CLI (head-object returns 0 if exists, non-zero if not)
+                if aws s3api head-object --bucket "${R2_BUCKET_NAME}" --key "${R2_OBJECT_KEY}" --endpoint-url "${ENDPOINT_URL}" > /dev/null 2>&1; then
                   echo "❌ Error: Version ${pkg_version} of ${pkg_name} already exists in R2. Please increment the version number."
                   exit 1
                 else
@@ -96,7 +101,7 @@ jobs:
                 fi
 
                 echo "Uploading ${SOURCE_FILE} to R2 bucket '${R2_BUCKET_NAME}' as '${R2_OBJECT_KEY}'..."
-                wrangler r2 object put "${R2_BUCKET_NAME}/${R2_OBJECT_KEY}" --file="$SOURCE_FILE" --content-type="application/javascript"
+                aws s3 cp "${SOURCE_FILE}" "s3://${R2_BUCKET_NAME}/${R2_OBJECT_KEY}" --endpoint-url "${ENDPOINT_URL}" --content-type "application/javascript"
 
                 echo "✅ Successfully uploaded ${pkg_name}@${pkg_version}."
               )
