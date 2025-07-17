@@ -74,14 +74,14 @@ jobs:
                 R2_OBJECT_KEY="${pkg_name}/${pkg_version}/index.js"
 
                 echo "Checking if version ${pkg_version} already exists at ${R2_OBJECT_KEY}..."
-                
-                existing_object=$(wrangler r2 object get "${R2_BUCKET_NAME}/${R2_OBJECT_KEY}" --pipe || true)
 
-                if [ -n "$existing_object" ]; then
+                # Check existence by testing the command's exit code (suppresses output)
+                if wrangler r2 object head "${R2_BUCKET_NAME}/${R2_OBJECT_KEY}" > /dev/null 2>&1; then
                   echo "❌ Error: Version ${pkg_version} of ${pkg_name} already exists in R2. Please increment the version number."
                   exit 1
+                else
+                  echo "✅ Version does not exist. Proceeding..."
                 fi
-                echo "✅ Version does not exist. Proceeding..."
 
                 echo "Installing dependencies..."
                 bun install
