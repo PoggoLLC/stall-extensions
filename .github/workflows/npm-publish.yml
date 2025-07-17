@@ -1,67 +1,93 @@
-name: Node.js Package
+name: Stall Extensions NPM
 
 on:
-  release:
-    types: [created]
+  push:
     branches:
       - main
+    paths:
+      - "extensions/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Update submodules
+        run: git submodule update --remote --recursive
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20 # Consider using LTS version
 
-      - run: npm ci  # Clean install using package-lock.json
-      - run: npm test  # Run your tests
+      - run: npm ci
+      - run: npm test
 
   publish-npm:
-    needs: build  # Only runs if build job succeeds
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
+
+      - name: Update submodules
+        run: git submodule update --remote --recursive
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
           registry-url: https://registry.npmjs.org/
-          scope: '@stallpos'
+          scope: "@stallpos"
+
+      - name: Verify NPM Authentication
+        run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
 
       - name: Loop and patch + publish each extension
         run: |
-          for ext_dir in ./extensions/*/; do
-            pkg="$ext_dir/package.json"
+          set -e
 
-            if [ -f "$pkg" ]; then
+          for ext_dir in ./extensions/*/; do
+            if [ -f "$ext_dir/package.json" ]; then
               echo "📦 Processing: $ext_dir"
 
-              # Read the original name
-              original_name=$(jq -r '.name' "$pkg")
+              # Create a subshell to handle directory changes
+              (
+                cd "$ext_dir"
 
-              # Determine the new scoped name
-              if [[ "$original_name" != @stallpos/* ]]; then
-                unscoped_name=$(basename "$original_name")  # handles cases like "my-extension"
-                new_name="@stallpos/$unscoped_name"
+                # Patch package.json name
+                original_name=$(jq -r '.name' package.json)
 
-                echo "🔧 Patching name: $original_name → $new_name"
-                jq --arg new_name "$new_name" '.name = $new_name' "$pkg" > "$pkg.tmp" && mv "$pkg.tmp" "$pkg"
-              else
-                echo "✅ Already scoped: $original_name"
-              fi
+                if [[ "$original_name" != @stallpos/* ]]; then
+                  unscoped_name=$(basename "$original_name")
+                  new_name="@stallpos/$unscoped_name"
 
-              # Install, build, publish
-              cd "$ext_dir"
-              npm ci || npm install
-              npm run build || true
-              npm publish --access public || echo "⚠️ Failed to publish $ext_dir"
-              cd - > /dev/null
+                  echo "🔧 Patching name: $original_name → $new_name"
+                  jq --arg new_name "$new_name" '.name = $new_name' package.json > package.json.tmp
+                  mv package.json.tmp package.json
+                else
+                  echo "✅ Already scoped: $original_name"
+                fi
+
+                # Install, build, publish
+                echo "Installing dependencies..."
+                npm ci || npm install
+
+                echo "Building..."
+                npm run build || echo "⚠️ No build script"
+
+                echo "Publishing..."
+                npm publish --access public
+              )
             fi
           done
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm_token }} 
+          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
