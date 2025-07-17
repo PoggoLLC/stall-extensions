@@ -41,11 +41,6 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install AWS CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y awscli
-
       - name: Build, version check, and upload changed extensions
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -55,9 +50,7 @@ jobs:
         run: |
           set -e
 
-          # Construct the R2 S3-compatible endpoint URL
-          ENDPOINT_URL="https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com"
-
+          # Identify which extension directories have changed
           CHANGED_EXTENSIONS=$(git diff --name-only HEAD~1 HEAD | grep '^extensions/' | awk -F'/' '{print $1 "/" $2}' | uniq)
 
           if [ -z "$CHANGED_EXTENSIONS" ]; then
@@ -68,6 +61,10 @@ jobs:
           echo "🚀 Found changed extensions to deploy:"
           echo "$CHANGED_EXTENSIONS"
 
+          # Install the AWS S3 SDK with Bun (S3-compatible with R2)
+          echo "Installing @aws-sdk/client-s3 with Bun..."
+          bun add @aws-sdk/client-s3
+
           for ext_dir in $CHANGED_EXTENSIONS; do
             if [ -f "$ext_dir/package.json" ]; then
               echo "📦 Processing: $ext_dir"
@@ -77,16 +74,6 @@ jobs:
                 pkg_name=$(jq -r '.name | sub("@stallpos/"; "")' package.json)
                 pkg_version=$(jq -r '.version' package.json)
                 R2_OBJECT_KEY="${pkg_name}/${pkg_version}/index.js"
-
-                echo "Checking if version ${pkg_version} already exists at ${R2_OBJECT_KEY}..."
-
-                # Check existence using AWS CLI (head-object returns 0 if exists, non-zero if not)
-                if aws s3api head-object --bucket "${R2_BUCKET_NAME}" --key "${R2_OBJECT_KEY}" --endpoint-url "${ENDPOINT_URL}" > /dev/null 2>&1; then
-                  echo "❌ Error: Version ${pkg_version} of ${pkg_name} already exists in R2. Please increment the version number."
-                  exit 1
-                else
-                  echo "✅ Version does not exist. Proceeding..."
-                fi
 
                 echo "Installing dependencies..."
                 bun install
@@ -100,10 +87,55 @@ jobs:
                   exit 1
                 fi
 
-                echo "Uploading ${SOURCE_FILE} to R2 bucket '${R2_BUCKET_NAME}' as '${R2_OBJECT_KEY}'..."
-                aws s3 cp "${SOURCE_FILE}" "s3://${R2_BUCKET_NAME}/${R2_OBJECT_KEY}" --endpoint-url "${ENDPOINT_URL}" --content-type "application/javascript"
+                # Create a temporary JS script for R2 operations using AWS SDK
+                cat << EOF > r2-upload.js
+                const fs = require('fs');
+                const { S3Client, HeadObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
 
-                echo "✅ Successfully uploaded ${pkg_name}@${pkg_version}."
+                (async () => {
+                  const client = new S3Client({
+                    region: 'auto',
+                    endpoint: \`https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com\`,
+                    credentials: {
+                      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+                    },
+                  });
+
+                  const bucket = process.env.R2_BUCKET_NAME;
+                  const key = '${R2_OBJECT_KEY}';
+                  const filePath = '${SOURCE_FILE}';
+
+                  // Check if object exists
+                  try {
+                    await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+                    console.error('❌ Error: Version already exists in R2. Please increment the version number.');
+                    process.exit(1);
+                  } catch (err) {
+                    if (err.name !== 'NotFound') {
+                      console.error('❌ Unexpected error during existence check:', err);
+                      process.exit(1);
+                    }
+                    console.log('✅ Version does not exist. Proceeding...');
+                  }
+
+                  // Upload the file
+                  const fileContent = fs.readFileSync(filePath);
+                  await client.send(new PutObjectCommand({
+                    Bucket: bucket,
+                    Key: key,
+                    Body: fileContent,
+                    ContentType: 'application/javascript',
+                  }));
+                  console.log('✅ Successfully uploaded to R2.');
+                })();
+                EOF
+
+                echo "Checking and uploading ${pkg_name}@${pkg_version} to R2..."
+                bun run r2-upload.js
+
+                # Clean up the temporary script
+                rm -f r2-upload.js
               )
             fi
           done
