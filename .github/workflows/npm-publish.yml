@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-          fetch-depth: 0
+          fetch-depth: 1
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -41,49 +41,60 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Loop and patch + publish each extension
+      - name: Identify changed extensions and publish
+        env:
+          NPM_TOKEN: ${{ secrets.npm_token }}
         run: |
           set -e
 
-          for ext_dir in ./extensions/*/; do
+          # Get a list of directories that have changed between this commit and the previous one.
+          # We look for changes inside the 'extensions/' path.
+          # awk and uniq ensure we get each directory name only once.
+          CHANGED_EXTENSIONS=$(git diff --name-only HEAD~1 HEAD | grep '^extensions/' | awk -F'/' '{print $1 "/" $2}' | uniq)
+
+          if [ -z "$CHANGED_EXTENSIONS" ]; then
+            echo "No extensions were changed. Nothing to publish."
+            exit 0
+          fi
+
+          echo "🚀 Found changed extensions to publish:"
+          echo "$CHANGED_EXTENSIONS"
+
+          for ext_dir in $CHANGED_EXTENSIONS; do
             if [ -f "$ext_dir/package.json" ]; then
               echo "📦 Processing: $ext_dir"
 
-              # Create a subshell to handle directory changes
+              # Create a subshell to handle directory changes safely
               (
                 cd "$ext_dir"
 
-                # Create .npmrc in the current directory
-                echo "//registry.npmjs.org/:_authToken=${{ secrets.npm_token }}" > .npmrc
+                # Create .npmrc in the current directory for authentication
+                echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
 
-                # Patch package.json name
+                # The name-patching logic is kept in case a new, unscoped extension is added.
                 original_name=$(jq -r '.name' package.json)
-
                 if [[ "$original_name" != @stallpos/* ]]; then
                   unscoped_name=$(basename "$original_name")
                   new_name="@stallpos/$unscoped_name"
-
                   echo "🔧 Patching name: $original_name → $new_name"
-                  jq --arg new_name "$new_name" '.name = $new_name' package.json > package.json.tmp
-                  mv package.json.tmp package.json
+                  jq --arg new_name "$new_name" '.name = $new_name' package.json > package.json.tmp && mv package.json.tmp package.json
                 else
-                  echo "✅ Already scoped: $original_name"
+                  echo "✅ Name is already scoped: $original_name"
                 fi
 
-                # Install dependencies with bun
                 echo "Installing dependencies with bun..."
                 bun install
 
-                # Build with bun
                 echo "Building..."
-                bun run build || echo "⚠️ No build script"
+                bun run build || echo "⚠️ No build script or build failed"
 
-                # Publish with bun
                 echo "Publishing to npm with bun..."
                 bun publish --access public
 
-                # Clean up .npmrc
+                # Clean up the auth file
                 rm -f .npmrc
               )
+            else
+              echo "⚠️ No package.json found in changed directory: $ext_dir"
             fi
           done
