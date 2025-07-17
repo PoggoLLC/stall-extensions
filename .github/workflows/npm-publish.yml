@@ -41,21 +41,15 @@ jobs:
         with:
           bun-version: latest
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org/
-          scope: "@stallpos"
-
-      - name: Configure npm authentication
+      - name: Configure npm authentication for Bun
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.npm_token }}" > ~/.npmrc
           echo "@stallpos:registry=https://registry.npmjs.org/" >> ~/.npmrc
 
-      - name: Verify NPM Authentication
-        run: npm whoami
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
+      - name: Verify Authentication
+        run: |
+          echo "Checking npm registry access..."
+          curl -H "Authorization: Bearer ${{ secrets.npm_token }}" https://registry.npmjs.org/-/whoami
 
       - name: Loop and patch + publish each extension
         run: |
@@ -91,11 +85,9 @@ jobs:
                 echo "Building..."
                 bun run build || echo "⚠️ No build script"
 
-                # Publish with npm (bun doesn't support publishing yet)
-                echo "Publishing to npm..."
-                npm publish --access public
+                # Publish with bun
+                echo "Publishing to npm with bun..."
+                bun publish --access public
               )
             fi
           done
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
