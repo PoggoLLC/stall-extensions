@@ -71,7 +71,7 @@ jobs:
                 # Create .npmrc in the current directory for authentication
                 echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
 
-                # The name-patching logic is kept in case a new, unscoped extension is added.
+                # Name-patching logic in case a new, unscoped extension is added.
                 original_name=$(jq -r '.name' package.json)
                 if [[ "$original_name" != @stallpos/* ]]; then
                   unscoped_name=$(basename "$original_name")

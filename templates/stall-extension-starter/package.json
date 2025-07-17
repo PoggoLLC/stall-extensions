@@ -1,6 +1,13 @@
 {
-  "name": "stall-currency-converter",
+  "name": "my-extension",
   "type": "module",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "unpkg": "dist/index.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "bun build --minify src/index.ts --outdir dist",
     "dev": "bun run 'stall.config.ts'"
