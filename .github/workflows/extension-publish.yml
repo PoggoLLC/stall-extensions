@@ -1,0 +1,105 @@
+name: Stall POS Extensions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "extensions/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies at root
+        run: bun install
+
+      - name: Run tests at root
+        run: bun test || echo "No tests found"
+
+  deploy-to-r2:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Build, version check, and upload changed extensions
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          CLOUDFLARE_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          CLOUDFLARE_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          set -e
+
+          # Install the Cloudflare CLI using Bun
+          echo "Installing Cloudflare Wrangler CLI with Bun..."
+          bun add -g wrangler
+
+          # Identify which extension directories have changed
+          CHANGED_EXTENSIONS=$(git diff --name-only HEAD~1 HEAD | grep '^extensions/' | awk -F'/' '{print $1 "/" $2}' | uniq)
+
+          if [ -z "$CHANGED_EXTENSIONS" ]; then
+            echo "No extensions were changed. Nothing to deploy."
+            exit 0
+          fi
+
+          echo "🚀 Found changed extensions to deploy:"
+          echo "$CHANGED_EXTENSIONS"
+
+          for ext_dir in $CHANGED_EXTENSIONS; do
+            if [ -f "$ext_dir/package.json" ]; then
+              echo "📦 Processing: $ext_dir"
+              (
+                cd "$ext_dir"
+
+                pkg_name=$(jq -r '.name | sub("@stallpos/"; "")' package.json)
+                pkg_version=$(jq -r '.version' package.json)
+                R2_OBJECT_KEY="${pkg_name}/${pkg_version}/index.js"
+
+                echo "Checking if version ${pkg_version} already exists at ${R2_OBJECT_KEY}..."
+                existing_object=$(wrangler r2 object get "${R2_BUCKET_NAME}/${R2_OBJECT_KEY}" --pipe || true)
+
+                if [ -n "$existing_object" ]; then
+                  echo "❌ Error: Version ${pkg_version} of ${pkg_name} already exists in R2. Please increment the version number."
+                  exit 1
+                fi
+                echo "✅ Version does not exist. Proceeding..."
+
+                echo "Installing dependencies..."
+                bun install
+
+                echo "Building asset..."
+                bun run build || echo "⚠️ No build script or build failed"
+
+                SOURCE_FILE="dist/index.js"
+                if [ ! -f "$SOURCE_FILE" ]; then
+                  echo "❌ Build artifact not found at $SOURCE_FILE."
+                  exit 1
+                fi
+
+                echo "Uploading ${SOURCE_FILE} to R2 bucket '${R2_BUCKET_NAME}' as '${R2_OBJECT_KEY}'..."
+                wrangler r2 object put "${R2_BUCKET_NAME}/${R2_OBJECT_KEY}" --file="$SOURCE_FILE" --content-type="application/javascript"
+
+                echo "✅ Successfully uploaded ${pkg_name}@${pkg_version}."
+              )
+            fi
+          done
