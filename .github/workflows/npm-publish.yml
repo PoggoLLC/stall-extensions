@@ -1,0 +1,67 @@
+name: Node.js Package
+
+on:
+  release:
+    types: [created]
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: npm ci  # Clean install using package-lock.json
+      - run: npm test  # Run your tests
+
+  publish-npm:
+    needs: build  # Only runs if build job succeeds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org/
+          scope: '@stallpos'
+
+      - name: Loop and patch + publish each extension
+        run: |
+          for ext_dir in ./extensions/*/; do
+            pkg="$ext_dir/package.json"
+
+            if [ -f "$pkg" ]; then
+              echo "📦 Processing: $ext_dir"
+
+              # Read the original name
+              original_name=$(jq -r '.name' "$pkg")
+
+              # Determine the new scoped name
+              if [[ "$original_name" != @stallpos/* ]]; then
+                unscoped_name=$(basename "$original_name")  # handles cases like "my-extension"
+                new_name="@stallpos/$unscoped_name"
+
+                echo "🔧 Patching name: $original_name → $new_name"
+                jq --arg new_name "$new_name" '.name = $new_name' "$pkg" > "$pkg.tmp" && mv "$pkg.tmp" "$pkg"
+              else
+                echo "✅ Already scoped: $original_name"
+              fi
+
+              # Install, build, publish
+              cd "$ext_dir"
+              npm ci || npm install
+              npm run build || true
+              npm publish --access public || echo "⚠️ Failed to publish $ext_dir"
+              cd - > /dev/null
+            fi
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm_token }} 
