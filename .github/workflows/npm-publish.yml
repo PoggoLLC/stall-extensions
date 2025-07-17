@@ -41,9 +41,11 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Setup npm authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.npm_token }}" >> $HOME/.npmrc
+
       - name: Loop and patch + publish each extension
-        env:
-          BUN_AUTH_TOKEN: ${{ secrets.npm_token }}
         run: |
           set -e
 
@@ -79,7 +81,7 @@ jobs:
 
                 # Publish with bun
                 echo "Publishing to npm with bun..."
-                bun publish --access public --token $BUN_AUTH_TOKEN
+                bun publish --access public
               )
             fi
           done
