@@ -50,11 +50,9 @@ jobs:
         run: |
           set -e
 
-          # Install the Cloudflare CLI using Bun
           echo "Installing Cloudflare Wrangler CLI with Bun..."
           bun add -g wrangler
 
-          # Identify which extension directories have changed
           CHANGED_EXTENSIONS=$(git diff --name-only HEAD~1 HEAD | grep '^extensions/' | awk -F'/' '{print $1 "/" $2}' | uniq)
 
           if [ -z "$CHANGED_EXTENSIONS" ]; then
@@ -76,6 +74,7 @@ jobs:
                 R2_OBJECT_KEY="${pkg_name}/${pkg_version}/index.js"
 
                 echo "Checking if version ${pkg_version} already exists at ${R2_OBJECT_KEY}..."
+                
                 existing_object=$(wrangler r2 object get "${R2_BUCKET_NAME}/${R2_OBJECT_KEY}" --pipe || true)
 
                 if [ -n "$existing_object" ]; then
