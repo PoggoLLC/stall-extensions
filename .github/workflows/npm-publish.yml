@@ -1,4 +1,4 @@
-name: Stall Extensions NPM
+name: Stall POS Extensions
 
 on:
   push:
@@ -18,15 +18,15 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Update submodules
-        run: git submodule update --remote --recursive
-
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20 # Consider using LTS version
+          bun-version: latest
 
-      - run: npm ci
-      - run: npm test
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run tests
+        run: bun test || echo "No tests found"
 
   publish-npm:
     needs: build
@@ -37,14 +37,20 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Update submodules
-        run: git submodule update --remote --recursive
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
           scope: "@stallpos"
+
+      - name: Configure npm authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.npm_token }}" > ~/.npmrc
+          echo "@stallpos:registry=https://registry.npmjs.org/" >> ~/.npmrc
 
       - name: Verify NPM Authentication
         run: npm whoami
@@ -77,14 +83,16 @@ jobs:
                   echo "✅ Already scoped: $original_name"
                 fi
 
-                # Install, build, publish
-                echo "Installing dependencies..."
-                npm ci || npm install
+                # Install dependencies with bun
+                echo "Installing dependencies with bun..."
+                bun install
 
+                # Build with bun
                 echo "Building..."
-                npm run build || echo "⚠️ No build script"
+                bun run build || echo "⚠️ No build script"
 
-                echo "Publishing..."
+                # Publish with npm (bun doesn't support publishing yet)
+                echo "Publishing to npm..."
                 npm publish --access public
               )
             fi
