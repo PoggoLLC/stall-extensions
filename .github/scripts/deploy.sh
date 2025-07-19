@@ -27,15 +27,25 @@ for ext_dir in $CHANGED_EXTENSIONS; do
     ( # Start a subshell to safely change directories
       cd "$ext_dir"
 
-      # Extract metadata from package.json
-      pkg_name=$(jq -r '.name | sub("@stallpos/"; "")' package.json)
-      pkg_version=$(jq -r '.version' package.json)
-      R2_OBJECT_KEY_JS="${pkg_name}/${pkg_version}/index.js"
-      R2_OBJECT_KEY_ICON="${pkg_name}/${pkg_version}/icon.png"
-      ICON_URL="${R2_PUBLIC_URL}/${pkg_name}/${pkg_version}/icon.png"  # Construct the public URL for the icon
+      # Update src/extension.json with the icon URL (before building)
+      # First, extract name and version from extension.json to construct the URL
+      EXTENSION_JSON="src/extension.json"
+      if [ ! -f "$EXTENSION_JSON" ]; then
+        echo "❌ src/extension.json not found in ${ext_dir}."
+        exit 1
+      fi
+      ext_name=$(jq -r '.name // ""' "$EXTENSION_JSON")
+      ext_version=$(jq -r '.version // ""' "$EXTENSION_JSON")
+      if [ -z "$ext_name" ] || [ -z "$ext_version" ]; then
+        echo "❌ Required fields 'name' or 'version' missing in ${EXTENSION_JSON}."
+        exit 1
+      fi
+      R2_OBJECT_KEY_JS="${ext_name}/${ext_version}/index.js"
+      R2_OBJECT_KEY_ICON="${ext_name}/${ext_version}/icon.png"
+      ICON_URL="${R2_PUBLIC_URL}/${ext_name}/${ext_version}/icon.png"
 
-      # Check if the version already exists (using index.js as the sentinel file)
-      echo "Checking if version ${pkg_version} already exists (via ${R2_OBJECT_KEY_JS})..."
+      # Check if the version already exists (check both files)
+      echo "Checking if version ${ext_version} already exists (via ${R2_OBJECT_KEY_JS} and ${R2_OBJECT_KEY_ICON})..."
       cat << EOF > r2-check.js
       const { S3Client, HeadObjectCommand } = require('@aws-sdk/client-s3');
 
@@ -50,39 +60,47 @@ for ext_dir in $CHANGED_EXTENSIONS; do
         });
 
         const bucket = process.env.R2_BUCKET_NAME;
-        const key = '${R2_OBJECT_KEY_JS}';
 
+        // Check index.js
         try {
-          await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
-          console.error('❌ Error: Version \'' + key + '\' already exists in R2. Please increment the version number.');
+          await client.send(new HeadObjectCommand({ Bucket: bucket, Key: '${R2_OBJECT_KEY_JS}' }));
+          console.error('❌ Error: Version (index.js) already exists in R2.');
           process.exit(1);
         } catch (err) {
           if (err.name !== 'NotFound') {
-            console.error('❌ Unexpected error during existence check:', err);
+            console.error('❌ Unexpected error checking index.js:', err);
             process.exit(1);
           }
-          console.log('✅ Version does not exist. Proceeding...');
         }
+
+        // Check icon.png
+        try {
+          await client.send(new HeadObjectCommand({ Bucket: bucket, Key: '${R2_OBJECT_KEY_ICON}' }));
+          console.error('❌ Error: Version (icon.png) already exists in R2.');
+          process.exit(1);
+        } catch (err) {
+          if (err.name !== 'NotFound') {
+            console.error('❌ Unexpected error checking icon.png:', err);
+            process.exit(1);
+          }
+        }
+
+        console.log('✅ Version does not exist. Proceeding...');
       })();
 EOF
       bun run r2-check.js
       rm -f r2-check.js
 
       # Install local dependencies
-      echo "Installing dependencies for ${pkg_name}..."
+      echo "Installing dependencies..."
       bun install
 
-      # Update src/extension.json with the icon URL (before building)
-      EXTENSION_JSON="src/extension.json"
-      if [ ! -f "$EXTENSION_JSON" ]; then
-        echo "❌ src/extension.json not found in ${ext_dir}."
-        exit 1
-      fi
+      # Update the 'icon' field in src/extension.json
       echo "Updating 'icon' field in ${EXTENSION_JSON} to ${ICON_URL}..."
       jq --arg icon_url "${ICON_URL}" '.icon = $icon_url' "$EXTENSION_JSON" > extension.json.tmp && mv extension.json.tmp "$EXTENSION_JSON"
 
       # Build the asset (now with the updated extension.json)
-      echo "Building asset for ${pkg_name}..."
+      echo "Building asset..."
       bun run build || echo "⚠️ No build script or build failed"
 
       SOURCE_FILE_JS="dist/index.js"
@@ -137,11 +155,37 @@ EOF
 EOF
 
       # Execute the upload script with Bun
-      echo "Uploading files for ${pkg_name}@${pkg_version} to R2..."
+      echo "Uploading files for ${ext_name}@${ext_version} to R2..."
       bun run r2-upload.js
 
       # Clean up the temporary script
       rm -f r2-upload.js
+
+      # After uploads, sync with DB via POST request
+      # Extract all fields from the updated src/extension.json
+      ext_id=$(jq -r '.id // ""' "$EXTENSION_JSON")
+      ext_description=$(jq -r '.description // ""' "$EXTENSION_JSON")
+      ext_icon=$(jq -r '.icon // ""' "$EXTENSION_JSON")
+      ext_authors=$(jq '.authors // []' "$EXTENSION_JSON")  # Preserve as JSON array/string
+
+      if [ -z "$ext_id" ]; then
+        echo "❌ Required field 'id' missing in ${EXTENSION_JSON}."
+        exit 1
+      fi
+
+      echo "Syncing ${ext_name}@${ext_version} with DB..."
+      curl -X POST "${SYNC_ENDPOINT}" \
+        -H "Authorization: Bearer ${EXTENSIONS_GITHUB_KEY}" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "id": "'"${ext_id}"'",
+          "name": "'"${ext_name}"'",
+          "description": "'"${ext_description}"'",
+          "icon": "'"${ext_icon}"'",
+          "version": "'"${ext_version}"'",
+          "authors": '"${ext_authors}"'
+        }' \
+        --fail  # Fail if HTTP status is not 2xx
 
     ) # End the subshell
   fi
