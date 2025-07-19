@@ -162,32 +162,29 @@ EOF
       rm -f r2-upload.js
 
       # After uploads, sync with DB via POST request
-      # Extract all fields from the updated src/extension.json
-      ext_id=$(jq -r '.id // ""' "$EXTENSION_JSON")
-      ext_description=$(jq -r '.description // ""' "$EXTENSION_JSON")
-      ext_icon=$(jq -r '.icon // ""' "$EXTENSION_JSON")
-      ext_authors=$(jq '.authors // []' "$EXTENSION_JSON")
-      ext_keywords=$(jq '.keywords // []' "$EXTENSION_JSON")
-
-      if [ -z "$ext_id" ]; then
-        echo "❌ Required field 'id' missing in ${EXTENSION_JSON}."
-        exit 1
-      fi
-
+      # Construct the JSON payload using jq to ensure it's valid
       echo "Syncing ${ext_name}@${ext_version} with DB..."
-      curl -X POST "${SYNC_ENDPOINT}" \
-        -H "Authorization: Bearer ${EXTENSIONS_GITHUB_KEY}" \
-        -H "Content-Type: application/json" \
-        -d '{
-          "id": "'"${ext_id}"'",
-          "name": "'"${ext_name}"'",
-          "description": "'"${ext_description}"'",
-          "icon": "'"${ext_icon}"'",
-          "version": "'"${ext_version}"'",
-          "authors": "'"${ext_authors}"'",
-          "keywords": '"${ext_keywords}"'
-        }' \
-        --fail  # Fail if HTTP status is not 2xx
+      jq -n \
+        --argjson authors "$(jq '.authors // []' "$EXTENSION_JSON")" \
+        --argjson keywords "$(jq '.keywords // []' "$EXTENSION_JSON")" \
+        --arg id "$(jq -r '.id // ""' "$EXTENSION_JSON")" \
+        --arg name "$(jq -r '.name // ""' "$EXTENSION_JSON")" \
+        --arg description "$(jq -r '.description // ""' "$EXTENSION_JSON")" \
+        --arg icon "$(jq -r '.icon // ""' "$EXTENSION_JSON")" \
+        --arg version "$(jq -r '.version // ""' "$EXTENSION_JSON")" \
+        '{
+          "id": $id,
+          "name": $name,
+          "description": $description,
+          "icon": $icon,
+          "version": $version,
+          "authors": $authors,
+          "keywords": $keywords
+        }' | curl -X POST "${SYNC_ENDPOINT}" \
+          -H "Authorization: Bearer ${EXTENSIONS_GITHUB_KEY}" \
+          -H "Content-Type: application/json" \
+          --data-binary @- \
+          --fail
 
     ) # End the subshell
   fi
