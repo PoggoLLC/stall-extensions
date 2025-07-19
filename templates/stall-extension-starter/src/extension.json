@@ -4,7 +4,7 @@
   "name": "My Extension",
   "description": "My extension for Stall",
   "keywords": ["keyword1", "keyword2"],
-  "icon": "assests/icon.svg",
+  "icon": "assests/icon.png",
   "version": "0.0.1",
   "authors": ["Your name"],
   "repo": "https://github.com/your-name/stall-my-extension",

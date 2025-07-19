@@ -1,5 +1,11 @@
 # Stall Extension Starter
 
+## Instructions
+- Don't change the index.ts file.
+- Don't change the stall.config.ts file.
+- Make sure the extension.json follows the schema.
+- Include the icon in /src/assets/icon.png.
+
 To get started building your own stall extension, follow these steps:
 
 1. Clone the repository:

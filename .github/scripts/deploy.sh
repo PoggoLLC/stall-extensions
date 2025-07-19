@@ -30,26 +30,14 @@ for ext_dir in $CHANGED_EXTENSIONS; do
       # Extract metadata from package.json
       pkg_name=$(jq -r '.name | sub("@stallpos/"; "")' package.json)
       pkg_version=$(jq -r '.version' package.json)
-      R2_OBJECT_KEY="${pkg_name}/${pkg_version}/index.js"
+      R2_OBJECT_KEY_JS="${pkg_name}/${pkg_version}/index.js"
+      R2_OBJECT_KEY_ICON="${pkg_name}/${pkg_version}/icon.png"
+      ICON_URL="${R2_PUBLIC_URL}/${pkg_name}/${pkg_version}/icon.png"  # Construct the public URL for the icon
 
-      # Install local dependencies
-      echo "Installing dependencies for ${pkg_name}..."
-      bun install
-
-      # Build the asset
-      echo "Building asset for ${pkg_name}..."
-      bun run build || echo "⚠️ No build script or build failed"
-
-      SOURCE_FILE="dist/index.js"
-      if [ ! -f "$SOURCE_FILE" ]; then
-        echo "❌ Build artifact not found at $SOURCE_FILE."
-        exit 1
-      fi
-
-      # Create a temporary JS script to interact with R2
-      cat << EOF > r2-upload.js
-      const fs = require('fs');
-      const { S3Client, HeadObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+      # Check if the version already exists (using index.js as the sentinel file)
+      echo "Checking if version ${pkg_version} already exists (via ${R2_OBJECT_KEY_JS})..."
+      cat << EOF > r2-check.js
+      const { S3Client, HeadObjectCommand } = require('@aws-sdk/client-s3');
 
       (async () => {
         const client = new S3Client({
@@ -62,10 +50,8 @@ for ext_dir in $CHANGED_EXTENSIONS; do
         });
 
         const bucket = process.env.R2_BUCKET_NAME;
-        const key = '${R2_OBJECT_KEY}';
-        const filePath = '${SOURCE_FILE}';
+        const key = '${R2_OBJECT_KEY_JS}';
 
-        // Check if the version already exists
         try {
           await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
           console.error('❌ Error: Version \'' + key + '\' already exists in R2. Please increment the version number.');
@@ -77,21 +63,81 @@ for ext_dir in $CHANGED_EXTENSIONS; do
           }
           console.log('✅ Version does not exist. Proceeding...');
         }
+      })();
+EOF
+      bun run r2-check.js
+      rm -f r2-check.js
 
-        // If it doesn't exist, upload the file
-        const fileContent = fs.readFileSync(filePath);
+      # Install local dependencies
+      echo "Installing dependencies for ${pkg_name}..."
+      bun install
+
+      # Update src/extension.json with the icon URL (before building)
+      EXTENSION_JSON="src/extension.json"
+      if [ ! -f "$EXTENSION_JSON" ]; then
+        echo "❌ src/extension.json not found in ${ext_dir}."
+        exit 1
+      fi
+      echo "Updating 'icon' field in ${EXTENSION_JSON} to ${ICON_URL}..."
+      jq --arg icon_url "${ICON_URL}" '.icon = $icon_url' "$EXTENSION_JSON" > extension.json.tmp && mv extension.json.tmp "$EXTENSION_JSON"
+
+      # Build the asset (now with the updated extension.json)
+      echo "Building asset for ${pkg_name}..."
+      bun run build || echo "⚠️ No build script or build failed"
+
+      SOURCE_FILE_JS="dist/index.js"
+      if [ ! -f "$SOURCE_FILE_JS" ]; then
+        echo "❌ Build artifact not found at $SOURCE_FILE_JS."
+        exit 1
+      fi
+
+      SOURCE_FILE_ICON="src/assets/icon.png"
+      if [ ! -f "$SOURCE_FILE_ICON" ]; then
+        echo "❌ Icon file not found at $SOURCE_FILE_ICON."
+        exit 1
+      fi
+
+      # Create a temporary JS script to upload both files
+      cat << EOF > r2-upload.js
+      const fs = require('fs');
+      const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+
+      (async () => {
+        const client = new S3Client({
+          region: 'auto',
+          endpoint: \`https://\${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com\`,
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+          },
+        });
+
+        const bucket = process.env.R2_BUCKET_NAME;
+
+        // Upload index.js
+        const jsContent = fs.readFileSync('${SOURCE_FILE_JS}');
         await client.send(new PutObjectCommand({
           Bucket: bucket,
-          Key: key,
-          Body: fileContent,
+          Key: '${R2_OBJECT_KEY_JS}',
+          Body: jsContent,
           ContentType: 'application/javascript',
         }));
-        console.log('✅ Successfully uploaded to R2.');
+        console.log('✅ Uploaded index.js');
+
+        // Upload icon.png
+        const iconContent = fs.readFileSync('${SOURCE_FILE_ICON}');
+        await client.send(new PutObjectCommand({
+          Bucket: bucket,
+          Key: '${R2_OBJECT_KEY_ICON}',
+          Body: iconContent,
+          ContentType: 'image/png',
+        }));
+        console.log('✅ Uploaded icon.png');
       })();
 EOF
 
       # Execute the upload script with Bun
-      echo "Checking and uploading ${pkg_name}@${pkg_version} to R2..."
+      echo "Uploading files for ${pkg_name}@${pkg_version} to R2..."
       bun run r2-upload.js
 
       # Clean up the temporary script
