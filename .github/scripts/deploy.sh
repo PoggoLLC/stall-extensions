@@ -34,15 +34,15 @@ for ext_dir in $CHANGED_EXTENSIONS; do
         echo "❌ src/extension.json not found in ${ext_dir}."
         exit 1
       fi
-      ext_name=$(jq -r '.name // ""' "$EXTENSION_JSON")
+      ext_id=$(jq -r '.id // ""' "$EXTENSION_JSON")
       ext_version=$(jq -r '.version // ""' "$EXTENSION_JSON")
-      if [ -z "$ext_name" ] || [ -z "$ext_version" ]; then
+      if [ -z "$ext_id" ] || [ -z "$ext_version" ]; then
         echo "❌ Required fields 'name' or 'version' missing in ${EXTENSION_JSON}."
         exit 1
       fi
-      R2_OBJECT_KEY_JS="${ext_name}/${ext_version}/index.js"
-      R2_OBJECT_KEY_ICON="${ext_name}/${ext_version}/icon.png"
-      ICON_URL="${R2_PUBLIC_URL}/${ext_name}/${ext_version}/icon.png"
+      R2_OBJECT_KEY_JS="${ext_id}/${ext_version}/index.js"
+      R2_OBJECT_KEY_ICON="${ext_id}/${ext_version}/icon.png"
+      ICON_URL="${R2_PUBLIC_URL}/${ext_id}/${ext_version}/icon.png"
 
       # Check if the version already exists (check both files)
       echo "Checking if version ${ext_version} already exists (via ${R2_OBJECT_KEY_JS} and ${R2_OBJECT_KEY_ICON})..."
@@ -155,7 +155,7 @@ EOF
 EOF
 
       # Execute the upload script with Bun
-      echo "Uploading files for ${ext_name}@${ext_version} to R2..."
+      echo "Uploading files for ${ext_id}@${ext_version} to R2..."
       bun run r2-upload.js
 
       # Clean up the temporary script
@@ -163,7 +163,7 @@ EOF
 
       # After uploads, sync with DB via POST request
       # Construct the JSON payload using jq to ensure it's valid
-      echo "Syncing ${ext_name}@${ext_version} with DB..."
+      echo "Syncing ${ext_id}@${ext_version} with DB..."
       jq -n \
         --argjson authors "$(jq '.authors // []' "$EXTENSION_JSON")" \
         --argjson keywords "$(jq '.keywords // []' "$EXTENSION_JSON")" \
