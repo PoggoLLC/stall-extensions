@@ -1,121 +1,63 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Stall Extension",
+  "title": "Extension Metadata Schema",
   "type": "object",
-  "required": ["pages", "$schema"],
+  "required": [
+    "$schema",
+    "id",
+    "name",
+    "description",
+    "keywords",
+    "icon",
+    "version",
+    "authors",
+    "repo",
+    "homepage",
+    "offline_ready"
+  ],
   "properties": {
     "$schema": {
       "type": "string",
       "format": "uri"
     },
-    "pages": {
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "keywords": {
       "type": "array",
       "items": {
-        "type": "object",
-        "required": [
-          "default",
-          "id",
-          "title",
-          "description",
-          "contexts",
-          "actions",
-          "ui"
-        ],
-        "properties": {
-          "default": { "type": "boolean" },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "title": { "type": "string" },
-          "description": { "type": "string" },
-          "contexts": {
-            "type": "object",
-            "required": ["lookup", "standalone"],
-            "properties": {
-              "lookup": { "type": "boolean" },
-              "standalone": { "type": "boolean" }
-            },
-            "additionalProperties": false
-          },
-          "actions": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["default", "name", "args"],
-              "properties": {
-                "default": { "type": "boolean" },
-                "name": { "type": "string" },
-                "args": {
-                  "type": "array",
-                  "items": {
-                    "anyOf": [{ "type": "string" }, { "type": "number" }]
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "ui": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["type"],
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "enum": ["list", "form", "input"]
-                },
-                "data_origin": {
-                  "type": "string",
-                  "enum": ["local", "remote"]
-                },
-                "source": {
-                  "type": "string"
-                }
-              },
-              "allOf": [
-                {
-                  "if": {
-                    "properties": {
-                      "type": { "const": "list" }
-                    },
-                    "required": ["type"]
-                  },
-                  "then": {
-                    "required": ["data_origin", "source"],
-                    "properties": {
-                      "data_origin": {
-                        "type": "string",
-                        "enum": ["local", "remote"]
-                      },
-                      "source": {
-                        "type": "string",
-                        "anyOf": [
-                          {
-                            "enum": [
-                              "products",
-                              "customers",
-                              "orders",
-                              "collections",
-                              "categories"
-                            ]
-                          },
-                          {
-                            "format": "uri"
-                          }
-                        ]
-                      }
-                    }
-                  }
-                }
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "additionalProperties": false
+        "type": "string"
       }
+    },
+    "icon": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "authors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "repo": {
+      "type": "string",
+      "format": "uri"
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri"
+    },
+    "offline_ready": {
+      "type": "boolean"
     }
   },
   "additionalProperties": false

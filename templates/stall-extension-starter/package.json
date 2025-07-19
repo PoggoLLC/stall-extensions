@@ -13,7 +13,8 @@
     "dev": "bun run 'stall.config.ts'"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@stallpos/extension-types": "^0.0.2"
   },
   "peerDependencies": {
     "typescript": "^5"

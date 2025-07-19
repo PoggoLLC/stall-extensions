@@ -1,0 +1,13 @@
+{
+  "$schema": "https://extensions.stallpos.com/schema/v1/schema.json",
+  "id": "my-extension",
+  "name": "My Extension",
+  "description": "My extension for Stall",
+  "keywords": ["keyword1", "keyword2"],
+  "icon": "assests/icon.svg",
+  "version": "0.0.1",
+  "authors": ["Your name"],
+  "repo": "https://github.com/your-name/stall-my-extension",
+  "homepage": "https://github.com/your-name/stall-my-extension",
+  "offline_ready": true
+}
