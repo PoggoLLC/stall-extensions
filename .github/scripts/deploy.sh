@@ -166,7 +166,8 @@ EOF
       ext_id=$(jq -r '.id // ""' "$EXTENSION_JSON")
       ext_description=$(jq -r '.description // ""' "$EXTENSION_JSON")
       ext_icon=$(jq -r '.icon // ""' "$EXTENSION_JSON")
-      ext_authors=$(jq '.authors // []' "$EXTENSION_JSON")  # Preserve as JSON array/string
+      ext_authors=$(jq '.authors // []' "$EXTENSION_JSON")
+      ext_keywords=$(jq '.keywords // []' "$EXTENSION_JSON")
 
       if [ -z "$ext_id" ]; then
         echo "❌ Required field 'id' missing in ${EXTENSION_JSON}."
@@ -183,7 +184,8 @@ EOF
           "description": "'"${ext_description}"'",
           "icon": "'"${ext_icon}"'",
           "version": "'"${ext_version}"'",
-          "authors": '"${ext_authors}"'
+          "authors": "'"${ext_authors}"'",
+          "keywords": '"${ext_keywords}"'
         }' \
         --fail  # Fail if HTTP status is not 2xx
 
