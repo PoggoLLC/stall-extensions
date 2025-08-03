@@ -69,7 +69,7 @@
           "enum": ["page", "lookup"]
         }
       },
-      "required": ["main"]
+      "required": ["id", "type"]
     },
     "offline_ready": {
       "type": "boolean"
