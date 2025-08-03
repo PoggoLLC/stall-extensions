@@ -13,7 +13,8 @@
     "authors",
     "repo",
     "homepage",
-    "offline_ready"
+    "offline_ready",
+    "entrypoint"
   ],
   "properties": {
     "$schema": {
@@ -55,6 +56,20 @@
     "homepage": {
       "type": "string",
       "format": "uri"
+    },
+    "entrypoint": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The id of a default index page or group id if lookup is the default starting point"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["page", "lookup"]
+        }
+      },
+      "required": ["main"]
     },
     "offline_ready": {
       "type": "boolean"
