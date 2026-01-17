@@ -3,13 +3,13 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
-echo "🚀 Starting deployment script..."
+echo "Starting deployment script..."
 
 # 1. Identify which extension directories have changed
 CHANGED_EXTENSIONS=$(git diff --name-only HEAD~1 HEAD | grep '^extensions/' | awk -F'/' '{print $1 "/" $2}' | uniq)
 
 if [ -z "$CHANGED_EXTENSIONS" ]; then
-  echo "✅ No extensions were changed. Nothing to deploy."
+  echo "No extensions were changed. Nothing to deploy."
   exit 0
 fi
 
@@ -23,7 +23,7 @@ bun add @aws-sdk/client-s3
 # 3. Loop through each changed directory and process it
 for ext_dir in $CHANGED_EXTENSIONS; do
   if [ -f "$ext_dir/package.json" ]; then
-    echo "📦 Processing: $ext_dir"
+    echo "Processing: $ext_dir"
     ( # Start a subshell to safely change directories
       cd "$ext_dir"
 
@@ -85,7 +85,7 @@ for ext_dir in $CHANGED_EXTENSIONS; do
           }
         }
 
-        console.log('✅ Version does not exist. Proceeding...');
+        console.log('Version does not exist. Proceeding...');
       })();
 EOF
       bun run r2-check.js
@@ -101,7 +101,7 @@ EOF
 
       # Build the asset (now with the updated extension.json)
       echo "Building asset..."
-      bun run build || echo "⚠️ No build script or build failed"
+      bun run build || echo "No build script or build failed"
 
       SOURCE_FILE_JS="dist/index.js"
       if [ ! -f "$SOURCE_FILE_JS" ]; then
@@ -140,7 +140,7 @@ EOF
           Body: jsContent,
           ContentType: 'application/javascript',
         }));
-        console.log('✅ Uploaded index.js');
+        console.log('Uploaded index.js');
 
         // Upload icon.png
         const iconContent = fs.readFileSync('${SOURCE_FILE_ICON}');
@@ -150,7 +150,7 @@ EOF
           Body: iconContent,
           ContentType: 'image/png',
         }));
-        console.log('✅ Uploaded icon.png');
+        console.log('Uploaded icon.png');
       })();
 EOF
 
@@ -190,4 +190,4 @@ EOF
   fi
 done
 
-echo "🎉 Deployment script finished successfully."
+echo "Deployment script finished successfully."
