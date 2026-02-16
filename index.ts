@@ -1,1 +1,0 @@
-console.log("Stall Flex Extensions");
