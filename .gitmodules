@@ -1,9 +1,3 @@
-[submodule "extensions/stall-currency-converter"]
-	path = extensions/stall-currency-converter
-	url = https://github.com/Sands-45/stall-currency-converter.git
-[submodule "extensions/stall-voucher-generator"]
-	path = extensions/stall-voucher-generator
-	url = https://github.com/Sands-45/stall-voucher-generator.git
 [submodule "extensions/customers"]
 	path = extensions/customers
 	url = https://github.com/Sands-45/stall-customers-extension.git
