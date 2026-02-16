@@ -2,13 +2,44 @@
 
 Official Stall Flex Extensions repository.
 
+## Required Repositories
+You need two separate repositories when contributing an extension:
+
+1. Your fork of this repository (`stall-extensions`) for opening pull requests.
+2. Your own extension code repository (created from the template).
+
 ## Contribution Workflow
 Use the extension template in `templates/` as your starter architecture.
 
-1. Fork this repository.
+1. Fork this repository and clone your fork.
+```
+git clone https://github.com/<your-username>/stall-extensions.git
+cd stall-extensions
+git submodule update --init --recursive
+```
+
 2. Create your own extension repository using the template.
-3. In your fork of this repository, add or update the submodule so it points to your extension repository and target commit.
-5. Open a pull request from your fork to this repository.
+
+3. In your fork of this repository, add or update the submodule so it points to your extension repository.
+
+Add a new extension submodule:
+```
+git submodule add https://github.com/<your-username>/my-extension.git extensions/my-extension
+git add extensions/my-extension
+```
+
+Update an existing extension submodule to the latest commit from its default branch:
+```
+git submodule update --remote --merge extensions/my-extension
+git add extensions/my-extension
+```
+
+4. Commit and push changes in your fork, then open a pull request to this repository.
+
+5. In the pull request, include:
+- The link to your extension code repository.
+- A short summary of what changed.
+- Version change details (if this is an update).
 
 ## Submission and Approval Flow
 1. Start from the official template architecture.
