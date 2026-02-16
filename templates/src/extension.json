@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/PoggoLLC/stall-extensions/refs/heads/main/schema/v1/schema.json",
+  "$schema": "https://extensions.stallpos.com/schema/v1/schema.json",
   "id": "extension-template",
   "name": "Extension Template",
   "description": "Starter template for building Stall Flex extensions",

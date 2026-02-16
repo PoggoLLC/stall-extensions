@@ -63,6 +63,6 @@ Read and follow the docs before submitting:
 [developer.usestall.com/extensions](https://developer.usestall.com/extensions)
 
 ## Important Rules
-- Use approved Stall libraries for extension UI, icons, and types.
+- Use approved Stall libraries for extension UI, icons, and share external modules. You can check the list at stall.build.ts.
 - Follow the required extension interfaces and structure from the template.
 - Keep extension code safe and compliant with review requirements.
