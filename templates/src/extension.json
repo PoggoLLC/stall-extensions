@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/PoggoLLC/stall-extensions/refs/heads/main/schema/v1/schema.json",
+  "id": "extension-template",
+  "name": "Extension Template",
+  "description": "Starter template for building Stall Flex extensions",
+  "keywords": ["template", "starter", "extension"],
+  "icon": "/assets/template.svg",
+  "version": "0.0.1",
+  "authors": ["Stall"],
+  "repo": "https://github.com/stall/extension-template",
+  "homepage": "https://github.com/stall/extension-template",
+  "entrypoint": {
+    "id": "template-items",
+    "type": "lookup"
+  },
+  "offline_ready": true
+}

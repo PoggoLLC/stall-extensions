@@ -1,1 +1,1 @@
-console.log("Stall POS Extensions");
+console.log("Stall Flex Extensions");
