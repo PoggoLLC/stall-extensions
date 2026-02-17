@@ -28,6 +28,7 @@ const external_modules = [
   "@use-stall/core",
   "react-router-dom",
   "zustand",
+  "zustand/middleware",
 ];
 
 const DEFAULT_SHARED_MODULES: SharedModule[] = (() =>

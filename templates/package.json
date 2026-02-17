@@ -22,6 +22,7 @@
     "chokidar": "^5.0.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "zustand": "^5.0.11",
     "react-router-dom": "^7.13.0"
   },
   "peerDependencies": {
@@ -30,6 +31,7 @@
     "@use-stall/types": "^0.3.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "zustand": "^5.0.11",
     "typescript": "^5"
   }
 }
