@@ -4,3 +4,6 @@
 [submodule "extensions/currencies"]
 	path = extensions/currencies
 	url = https://github.com/Sands-45/stall-currencies-extension.git
+[submodule "extensions/products"]
+	path = extensions/products
+	url = https://github.com/Sands-45/stall-products-extensions.git
