@@ -16,3 +16,6 @@
 [submodule "extensions/orders"]
 	path = extensions/orders
 	url = https://github.com/Sands-45/stall-orders-extension.git
+[submodule "extensions/fulfillments"]
+	path = extensions/fulfillments
+	url = https://github.com/Sands-45/stall-fulfillments-extension.git
