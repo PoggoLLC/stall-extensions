@@ -22,3 +22,6 @@
 [submodule "extensions/retail-pos"]
 	path = extensions/retail-pos
 	url = https://github.com/PoggoLLC/stall-retail-pos-extension.git
+[submodule "extensions/payments"]
+	path = extensions/payments
+	url = https://github.com/PoggoLLC/stall-payments-extension.git
