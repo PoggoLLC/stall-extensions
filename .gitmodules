@@ -10,3 +10,6 @@
 [submodule "extensions/categories"]
 	path = extensions/categories
 	url = https://github.com/Sands-45/stall-categories-extension.git
+[submodule "extensions/collections"]
+	path = extensions/collections
+	url = https://github.com/Sands-45/stall-collections-extension.git
