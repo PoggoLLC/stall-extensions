@@ -19,3 +19,6 @@
 [submodule "extensions/fulfillments"]
 	path = extensions/fulfillments
 	url = https://github.com/Sands-45/stall-fulfillments-extension.git
+[submodule "extensions/retail-pos"]
+	path = extensions/retail-pos
+	url = https://github.com/PoggoLLC/stall-retail-pos-extension.git
