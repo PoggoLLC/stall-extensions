@@ -13,3 +13,6 @@
 [submodule "extensions/collections"]
 	path = extensions/collections
 	url = https://github.com/Sands-45/stall-collections-extension.git
+[submodule "extensions/orders"]
+	path = extensions/orders
+	url = https://github.com/Sands-45/stall-orders-extension.git
