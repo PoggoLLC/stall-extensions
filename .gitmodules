@@ -7,3 +7,6 @@
 [submodule "extensions/products"]
 	path = extensions/products
 	url = https://github.com/Sands-45/stall-products-extensions.git
+[submodule "extensions/categories"]
+	path = extensions/categories
+	url = https://github.com/Sands-45/stall-categories-extension.git
