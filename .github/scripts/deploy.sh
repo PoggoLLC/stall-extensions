@@ -5,6 +5,20 @@ set -e
 
 echo "Starting deployment script..."
 
+REPO_ROOT=$(pwd)
+TEMPLATE_DIR="${REPO_ROOT}/templates"
+COMPLIANCE_SCRIPT="${REPO_ROOT}/.github/scripts/extension-compliance.py"
+
+if [ ! -f "${TEMPLATE_DIR}/stall.config.ts" ] || [ ! -f "${TEMPLATE_DIR}/stall.build.ts" ]; then
+  echo "❌ Missing required template files in ${TEMPLATE_DIR}."
+  exit 1
+fi
+
+if [ ! -f "${COMPLIANCE_SCRIPT}" ]; then
+  echo "❌ Missing compliance script at ${COMPLIANCE_SCRIPT}."
+  exit 1
+fi
+
 # 1. Identify which extension directories have changed
 CHANGED_EXTENSIONS=$(git diff --name-only HEAD~1 HEAD | grep '^extensions/' | awk -F'/' '{print $1 "/" $2}' | uniq)
 
@@ -26,6 +40,16 @@ for ext_dir in $CHANGED_EXTENSIONS; do
     echo "Processing: $ext_dir"
     ( # Start a subshell to safely change directories
       cd "$ext_dir"
+
+      # Validate policy compliance before build/deploy
+      echo "Running extension compliance checks..."
+      python3 "${COMPLIANCE_SCRIPT}" \
+        --extension-root "$(pwd)" \
+        --template-root "${TEMPLATE_DIR}"
+
+      # Enforce shared build/config templates regardless of extension-local overrides
+      cp "${TEMPLATE_DIR}/stall.config.ts" "./stall.config.ts"
+      cp "${TEMPLATE_DIR}/stall.build.ts" "./stall.build.ts"
 
       # Update src/extension.json with the icon URL (before building)
       # First, extract name and version from extension.json to construct the URL
@@ -101,7 +125,7 @@ EOF
 
       # Build the asset (now with the updated extension.json)
       echo "Building asset..."
-      bun run build || echo "No build script or build failed"
+      bun run build
 
       SOURCE_FILE_JS="dist/index.js"
       if [ ! -f "$SOURCE_FILE_JS" ]; then

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Stall Extension Builder"
+  short_description: "Build Stall extensions from template with strict guardrails"
+  default_prompt: "Develop or update a Stall extension using the official template, keeping build/config unchanged, using shared modules, and validating size/version requirements."
