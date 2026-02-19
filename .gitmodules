@@ -4,3 +4,24 @@
 [submodule "extensions/currencies"]
 	path = extensions/currencies
 	url = https://github.com/Sands-45/stall-currencies-extension.git
+[submodule "extensions/products"]
+	path = extensions/products
+	url = https://github.com/Sands-45/stall-products-extensions.git
+[submodule "extensions/categories"]
+	path = extensions/categories
+	url = https://github.com/Sands-45/stall-categories-extension.git
+[submodule "extensions/collections"]
+	path = extensions/collections
+	url = https://github.com/Sands-45/stall-collections-extension.git
+[submodule "extensions/orders"]
+	path = extensions/orders
+	url = https://github.com/Sands-45/stall-orders-extension.git
+[submodule "extensions/fulfillments"]
+	path = extensions/fulfillments
+	url = https://github.com/Sands-45/stall-fulfillments-extension.git
+[submodule "extensions/retail-pos"]
+	path = extensions/retail-pos
+	url = https://github.com/PoggoLLC/stall-retail-pos-extension.git
+[submodule "extensions/payments"]
+	path = extensions/payments
+	url = https://github.com/PoggoLLC/stall-payments-extension.git
