@@ -29,6 +29,7 @@ const external_modules = [
   "react-router-dom",
   "zustand",
   "zustand/middleware",
+  "uuid",
 ];
 
 const DEFAULT_SHARED_MODULES: SharedModule[] = (() =>
